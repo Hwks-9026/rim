@@ -255,8 +255,11 @@ fn draw_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, camera: &Camera3D
                     }
                 }
             };
-            if let Some(focus) = game_data.focused && i == focus {
-                color = Color::YELLOW;
+            match game_data.focused {
+                None => {}
+                Some(focus) => {
+                    if i == focus {color = Color::YELLOW}
+                }
             }
             d3.draw_sphere(system.position, size, color.alpha(camera.fovy / 50.0));
             d3.draw_sphere(system.position, size + 0.1, color.alpha(0.5));
@@ -292,7 +295,7 @@ fn draw_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, camera: &Camera3D
     }
     */
     if camera.fovy < 60.0 {
-        d.draw_text("Press Return To View The Selected Star System", 10, 10, 20, Color::new(100, 100, 200, (camera.fovy * 5.0) as u8));
+        d.draw_text("Press Return To View The Selected Star System.\nPress Escape To Go Back to Map View", 10, 10, 20, Color::new(100, 100, 200, (camera.fovy * 5.0) as u8));
     }
 
 }
