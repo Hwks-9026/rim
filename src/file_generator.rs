@@ -15,7 +15,7 @@ pub(crate) fn load_file(path: &String) -> Option<Galaxy> {
 
 pub(crate) fn save(path: &String, save: Galaxy) {
     let data = serde_json::to_vec(&save).unwrap();
-    fs::write(path, data);
+    fs::write(path, data).unwrap();
 }
 
 pub(crate) fn generate_system_data() -> StarSystemData {

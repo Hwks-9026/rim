@@ -5,10 +5,9 @@ mod system;
 mod file_generator;
 
 use std::fs::exists;
-use std::env::{self, args};
+use std::env;
 use std::path::Path;
 
-use crate::map::Galaxy;
 fn main() {
 
     let args: Vec<String> = env::args().collect();

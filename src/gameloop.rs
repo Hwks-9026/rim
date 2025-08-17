@@ -1,10 +1,11 @@
 use std::f64::consts::PI;
 
-use raylib::{ffi::DrawPixel, prelude::*};
-use rand::prelude::*;
+use raylib::prelude::*;
 
 use crate::{
-    gameloop, map::{self, Galaxy}, system::{PlanetClass, StarSystemData}, utils::{self, point_on_3d_circle, rotate_vector}
+    map::{self, Galaxy}, 
+    system::{PlanetClass, StarSystemData}, 
+    utils::{self, point_on_3d_circle}
 };
 
 pub(crate) fn start_gameloop(save: Option<Galaxy>) -> Galaxy {
