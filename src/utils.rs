@@ -3,6 +3,7 @@ use raylib::prelude::Vector3;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::f32::consts::PI;
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
 pub(crate) fn random_normalized_vector() -> Vector3 {
     let mut rng = rand::thread_rng();
 
@@ -41,4 +42,51 @@ pub fn rotate_vector(v: Vector3, axis: Vector3, angle: f32) -> Vector3 {
     let cos_a = angle.cos();
     let sin_a = angle.sin();
     v * cos_a + axis.cross(v) * sin_a + axis * axis.dot(v) * (1.0 - cos_a)
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SerializableVector3 {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32
+}
+
+impl Into<Vector3> for SerializableVector3 {
+    fn into(self) -> Vector3 {
+        Vector3 {
+            x: self.x,
+            y: self.y,
+            z: self.z
+        }
+    }
+}
+impl Into<SerializableVector3> for Vector3 {
+    fn into(self) -> SerializableVector3 {
+        SerializableVector3 {
+            x: self.x,
+            y: self.y,
+            z: self.z
+        }
+    }
+}
+
+pub mod vector3_serde {
+    use super::*;
+
+
+    pub fn serialize<S>(v: &Vector3, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Just forward a tuple of floats
+        (v.x, v.y, v.z).serialize(s)
+    }
+
+    pub fn deserialize<'de, D>(d: D) -> Result<Vector3, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let (x, y, z) = <(f32, f32, f32)>::deserialize(d)?;
+        Ok(Vector3 { x, y, z })
+    }
 }

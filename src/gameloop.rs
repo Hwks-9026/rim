@@ -1,25 +1,30 @@
 use std::f64::consts::PI;
 
-use raylib::prelude::*;
-
+use raylib::{ffi::DrawPixel, prelude::*};
+use rand::prelude::*;
 
 use crate::{
-    map::{self, Galaxy}, 
-    system::{PlanetClass, StarSystemData}, utils::{self, rotate_vector, point_on_3d_circle}
+    gameloop, map::{self, Galaxy}, system::{PlanetClass, StarSystemData}, utils::{self, point_on_3d_circle, rotate_vector}
 };
 
-pub(crate) fn start_gameloop() {
+pub(crate) fn start_gameloop(save: Option<Galaxy>) -> Galaxy {
     let (mut rl, thread) = raylib::init()
         .log_level(TraceLogLevel::LOG_NONE)
         .undecorated()
+        .size(1920, 1080)
         .title("Rim")
-        .vsync()
         .build();
+    rl.set_target_fps(60);
     rl.set_exit_key(None);
-    let galaxy = map::Galaxy::new(200, 15, 250.0, 50.0);
+    let galaxy = match save {
+        None => map::Galaxy::new(200, 5, 250.0, 50.0),
+        Some(saved_galaxy) => saved_galaxy
+    };
+
     let stars = get_stars(500, 140.0);
-    let game_data = GameData {state: GameState::MapView, galaxy, hovered: None, focused: None, stars };
-    gameloop(&mut rl, &thread, game_data);
+    let mut game_data = GameData {state: GameState::MapView, galaxy, hovered: None, focused: None, stars, orbit_angle: None };
+    gameloop(&mut rl, &thread, &mut game_data);
+    return game_data.galaxy
 }
 
 
@@ -29,7 +34,7 @@ enum GameState {
 }
 
 
-fn gameloop(rl: &mut RaylibHandle, thread: &RaylibThread, mut game_data: GameData) {
+fn gameloop(rl: &mut RaylibHandle, thread: &RaylibThread, mut game_data: &mut GameData) {
     while !rl.window_should_close() {
         match &game_data.state {
             GameState::MapView => {
@@ -41,28 +46,36 @@ fn gameloop(rl: &mut RaylibHandle, thread: &RaylibThread, mut game_data: GameDat
         }
     }
 }
+
 fn gameloop_star_system_view(rl: &mut RaylibHandle, thread: &RaylibThread, game_data: &mut GameData) {
+    game_data.galaxy.systems[game_data.focused.unwrap()].explored = true;
     let mut camera = Camera3D::orthographic(
-        Vector3::new(100.0, 10.0, 100.0),
+        Vector3::new(100.0, 30.0, 100.0),
         Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(0.0, 1.0, 0.0),
         90.0,
     );
     
     let mut goofy_orbits: Vec<Vec<(Vector3, u8)>>;
-    let mut orbit_angle = 0.0f32; 
+    let mut orbit_angle = 0.0f32;
+    let mut pitch_angle = 90.0f32;
     let orbit_speed = 0.2;        
     let orbit_radius = 150.0;
+    let pitch_speed = 0.2;
     while !rl.window_should_close() {
         if rl.is_key_pressed(KeyboardKey::KEY_ESCAPE) { break }
         let mut orbit_direction = 0.0;
-        if rl.is_key_down(KeyboardKey::KEY_LEFT) {orbit_direction += 1.0}
-        if rl.is_key_down(KeyboardKey::KEY_RIGHT) {orbit_direction -= 1.0}
+        let mut pitch_direction = 0.0;
+        if rl.is_key_down(KeyboardKey::KEY_LEFT) {orbit_direction -= 1.0}
+        if rl.is_key_down(KeyboardKey::KEY_RIGHT) {orbit_direction += 1.0}
+        if rl.is_key_down(KeyboardKey::KEY_UP) {pitch_direction += 1.0}
+        if rl.is_key_down(KeyboardKey::KEY_DOWN) {pitch_direction -= 1.0}
         let dt = rl.get_frame_time();
         orbit_angle += orbit_speed * dt * orbit_direction;
-
-        camera.position.x = orbit_radius * orbit_angle.cos();
-        camera.position.z = orbit_radius * orbit_angle.sin();
+        pitch_angle += pitch_speed * dt * pitch_direction;
+        camera.position.x = orbit_radius * orbit_angle.cos() * pitch_angle.sin();
+        camera.position.z = orbit_radius * orbit_angle.sin() * pitch_angle.sin();
+        camera.position.y = orbit_radius * pitch_angle.cos();
         camera.target = Vector3::zero(); 
         camera.fovy -= 5.0 * rl.get_mouse_wheel_move();
         if camera.fovy > 120.0 {camera.fovy = 120.0};
@@ -75,21 +88,22 @@ fn gameloop_star_system_view(rl: &mut RaylibHandle, thread: &RaylibThread, game_
                 let mut points = Vec::new();
                 let mut i: f64 = 0.0;
                 while i < PI * 2.0 {
-                    let d = (((i / 2.0 / PI) - planet.orbit_completion + 0.5) % 1.0) - 0.5;
-                    let g = (-60.0 * d * d).exp();
-                    let mut alpha = (255.0 * g) as u8;
-                    if alpha < 10 {alpha = 10}
-                    if alpha > 5 {
-                        points.push((point_on_3d_circle(planet.orbit_normal, planet.orbit_radius as f32, i as f32), alpha));
-                    }
-                    i += 0.001;
+                    //let d = (((i / 2.0 / PI) - planet.orbit_completion + 0.5) % 1.0) - 0.5;
+                    //let g = (-60.0 * d * d).exp();
+                    //let mut alpha = (255.0 * g) as u8;
+                    //if alpha < 10 {alpha = 10}
+                    //if alpha > 5 {
+                    //    points.push((point_on_3d_circle(planet.orbit_normal, planet.orbit_radius as f32, i as f32), alpha));
+                    //}
+                    points.push((point_on_3d_circle(planet.orbit_normal, planet.orbit_radius as f32, i as f32), 55));
+                    i += 0.1;
                 }
                 orbits.push(points);
             }
             orbits
         };
 
-        draw_star_system_view(rl, thread, &camera, game_data, &goofy_orbits);
+        draw_star_system_view(rl, thread, &camera, &game_data, &goofy_orbits);
          
     }
 
@@ -103,7 +117,7 @@ fn draw_star_system_view(
     rl: &mut RaylibHandle, 
     thread: &RaylibThread, 
     camera: &Camera3D, 
-    game_data: &mut GameData,
+    game_data: &GameData,
     orbits: &Vec<Vec<(Vector3, u8)>>
     ) {
     let mut d = rl.begin_drawing(thread);
@@ -119,11 +133,19 @@ fn draw_star_system_view(
             d3.draw_point3D(star, Color::WHITE);
         }
         d3.draw_sphere(Vector3::zero(), sys_data.star_mass.log10() as f32 / 20.0, Color::YELLOW);
-        
+
+        let orbit_line_color = Color::new(255, 255, 255, 55);
+        for orbit in orbits {
+            d3.draw_line_3D(orbit[0].0.scale_by(50.0), orbit.last().unwrap().0.scale_by(50.0), orbit_line_color);
+            for pair in orbit.windows(2) {
+                d3.draw_line_3D(pair[0].0.scale_by(50.0), pair[1].0.scale_by(50.0), orbit_line_color);
+            }
+        }
+        /*
         for (point, alpha) in orbits.iter().flatten() {
             d3.draw_point3D(point.scale_by(50.0), Color::new(255, 255, 255, *alpha));
         }
-
+        */
         for planet in &sys_data.planets {
             
             
@@ -152,19 +174,29 @@ fn draw_star_system_view(
 }
 
 
-fn gameloop_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, mut game_data: &mut GameData) {
+fn gameloop_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, game_data: &mut GameData) {
     let mut camera = Camera3D::orthographic(
         Vector3::new(0.0, 0.0, 150.0),
         Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(0.0, 1.0, 0.0),
         120.0,
     );
-    let mut orbit_angle = 0.0f32; 
+    let mut orbit_angle = match &game_data.orbit_angle {
+        None => {0f32},
+        Some(angle) => {*angle}
+    };
+
     let orbit_speed = 0.1;        
     let orbit_radius = 150.0;
     let mut selecting = false;
     let mut fully_zoomed_frames = 0;
     while !rl.window_should_close() {
+        if game_data.focused == None {
+            camera.fovy -= 5.0 * rl.get_mouse_wheel_move();
+            if camera.fovy > 120.0 {camera.fovy = 120.0};
+            if camera.fovy < 50.0 {camera.fovy = 50.0};
+        }
+        
         let dt = rl.get_frame_time();
         orbit_angle += orbit_speed * dt;
 
@@ -190,9 +222,10 @@ fn gameloop_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, mut game_data
                 }
             }
         }
-        if rl.is_key_pressed(KeyboardKey::KEY_ESCAPE) {
+        if rl.is_key_released(KeyboardKey::KEY_ESCAPE) {
             match game_data.focused {
-                None => {},
+                None => {
+                },
                 Some(_) => {
                     game_data.focused = None; 
                     camera.fovy = 120.0; 
@@ -222,7 +255,7 @@ fn gameloop_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, mut game_data
                 }
             }
         }
-        draw_map_view(rl, thread, &camera, &mut game_data);
+        draw_map_view(rl, thread, &camera, &game_data, true);
     }
 }
 
@@ -230,7 +263,7 @@ fn gameloop_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, mut game_data
 
 
 
-fn draw_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, camera: &Camera3D, game_data: &mut GameData) {
+fn draw_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, camera: &Camera3D, game_data: & GameData, hud_text: bool) {
 
     let mut d = rl.begin_drawing(thread);
     d.clear_background(Color::BLACK);
@@ -239,7 +272,7 @@ fn draw_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, camera: &Camera3D
         for star in &game_data.stars {
             d3.draw_point3D(star, Color::WHITE);
         }
-
+        let mut skipped_systems: Vec<usize> = Vec::new();
         for (i, system) in game_data.galaxy.systems.iter().enumerate() {
             let (size, mut color) = match game_data.hovered {
                 Some(val) => {
@@ -247,37 +280,61 @@ fn draw_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, camera: &Camera3D
                     else { (0.5, Color::new(55, 55, 55, 255)) }
                 },
                 None => { 
-                    if let Some(_) = system.system_data {
-                        (0.6, Color::new(80, 80, 110, 255)) 
+                    if let None = system.system_data {
+                        (0.5, Color::new(90, 90, 90, 255)) 
                     }
                     else {
-                        (0.5, Color::new(90, 90, 90, 255)) 
+                        if system.explored == false {
+                            (0.5, Color::new(60, 60, 80, 255))
+                        }
+                        else {
+                            (0.6, Color::new(110, 90, 130, 255))
+                        }
+                    
                     }
                 }
             };
+            let mut highlight_all_connections = false;
+            let mut connection_color = Color::new(255, 255, 255, 20);
             match game_data.focused {
                 None => {}
                 Some(focus) => {
-                    if i == focus {color = Color::YELLOW}
+                    if i == focus {
+                        color = Color::YELLOW; 
+                        highlight_all_connections = true; 
+                        connection_color = Color::new(255, 255, 0, 30);
+                        skipped_systems.push(i);
+                    }
+                }
+            }
+            match game_data.hovered {
+                None => {}
+                Some(hovered) => {
+                    if i == hovered {
+                        highlight_all_connections = true; 
+                        connection_color = Color::new(150, 150, 255, 30);
+                        skipped_systems.push(i);
+                    }
                 }
             }
             d3.draw_sphere(system.position, size, color.alpha(camera.fovy / 50.0));
             d3.draw_sphere(system.position, size + 0.1, color.alpha(0.5));
-
             // Draw connections
             for &conn_idx in &system.connections {
-                if conn_idx > i {
+                if (conn_idx > i || highlight_all_connections) && !skipped_systems.contains(&conn_idx) {
                     let conn = &game_data.galaxy.systems[conn_idx];
                     d3.draw_line_3D(
                         system.position,
                         conn.position,
-                        Color::new(255, 255, 255, 20),
+                        connection_color
                     );
                 }
             }
         }
 
     }
+
+    if !hud_text {return}
     /*
     match game_data.hovered {
         None => {
@@ -307,7 +364,8 @@ struct GameData {
     galaxy: Galaxy,
     hovered: Option<usize>,
     focused: Option<usize>,
-    stars: Vec<Vector3>
+    stars: Vec<Vector3>,
+    orbit_angle: Option<f32>
 }
 
 fn get_stars(num_stars: usize, starfield_radius: f32) -> Vec<Vector3> {

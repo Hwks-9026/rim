@@ -4,18 +4,26 @@ use crate::system::*;
 use rand::Rng;
 use raylib::prelude::*;
 use std::f64::consts::PI;
-#[derive(Debug)]
+
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct StarSystem {
+    #[serde(with = "vector3_serde")]
     pub position: Vector3,
+    #[serde(with = "vector3_serde")]
     origin: Vector3,
+    #[serde(with = "vector3_serde")]
     pub drift_direction: Vector3,
     pub connections: Vec<usize>,
     pub name: usize,
-    pub system_data: Option<StarSystemData>
+    pub system_data: Option<StarSystemData>,
+    pub explored: bool
 }
 
 const SPRING_STRENGTH: f32 = 0.001;
-const DAMPING: f32 = 0.98;
+const DAMPING: f32 = 0.95;
+
 impl StarSystem {
     fn drift(&mut self, dt: f32) {
         self.drift_direction += random_normalized_vector().scale_by(0.003);
@@ -42,7 +50,7 @@ impl StarSystem {
             }
             Some(data) => {
                 for planet in &mut data.planets {
-                    planet.orbit_completion += 0.001*(2.01 - planet.orbit_radius).powf(0.4);
+                    planet.orbit_completion += 0.0002 / planet.orbit_radius;
                     if planet.orbit_completion > 1.0 {
                         planet.orbit_completion = 0.0;
                     }
@@ -53,7 +61,7 @@ impl StarSystem {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Galaxy {
     pub systems: Vec<StarSystem>,
 }
@@ -96,8 +104,9 @@ impl Galaxy {
                 origin: Vector3::new(x as f32, y as f32, z as f32),
                 drift_direction: Vector3::zero(),
                 connections: Vec::new(),
-                system_data: None,
-                name: crate::utils::hash_planet_id(i) as u32 as usize
+                system_data: Some(crate::file_generator::generate_system_data()),
+                name: crate::utils::hash_planet_id(i) as u32 as usize,
+                explored: false
             });
         }
 

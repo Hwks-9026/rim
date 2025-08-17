@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 use rand::prelude::*;
 use raylib::prelude::Vector3;
-use crate::utils::rotate_vector;
-#[derive(Debug, Clone)]
+use crate::utils::{rotate_vector, vector3_serde};
+use serde::{Serialize, Deserialize};
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct StarSystemData {
     pub star_mass: f64,
     pub planets: Vec<Planet> 
@@ -22,17 +23,18 @@ impl StarSystemData {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Planet {
     pub mass: f64,
     pub orbit_completion: f64, //number from 0 to 1
     pub orbit_radius: f64,
+    #[serde(with = "vector3_serde")]
     pub orbit_normal: Vector3,
     pub class: PlanetClass,
     pub moons: Vec<Moon>
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub(crate) enum PlanetClass {
     Terran,
     GasGiant,
@@ -43,15 +45,16 @@ pub(crate) enum PlanetClass {
     MetalWorld,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Moon {
     pub moon_type: MoonType,
     pub mass: f64,
     pub orbital_radius: f64,
+    #[serde(with = "vector3_serde")]
     pub orbit_normal: Vector3
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub(crate) enum MoonType {
     Asteroid,
     RoundDusty,
