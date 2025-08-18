@@ -183,7 +183,7 @@ impl Galaxy {
 }
 
 
-fn ray_sphere_intersect(ray_pos: Vector3, ray_dir: Vector3, sphere_pos: Vector3, sphere_radius: f32) -> bool {
+pub fn ray_sphere_intersect(ray_pos: Vector3, ray_dir: Vector3, sphere_pos: Vector3, sphere_radius: f32) -> bool {
     let l = Vector3 {
         x: sphere_pos.x - ray_pos.x,
         y: sphere_pos.y - ray_pos.y,

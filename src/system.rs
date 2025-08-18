@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use rand::prelude::*;
-use raylib::prelude::Vector3;
-use crate::utils::{rotate_vector, vector3_serde};
+use raylib::{ffi::PI, prelude::Vector3, prelude::Camera3D, prelude::RaylibHandle};
+use crate::utils::{self, rotate_vector, vector3_serde};
 use serde::{Serialize, Deserialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct StarSystemData {
@@ -20,6 +20,25 @@ impl StarSystemData {
             star_mass,
             planets: generate_planets(rng.gen_range(0..=10))
         }  
+    }
+    pub fn closest_planet_to_mouse(&self, rl: &mut RaylibHandle, camera: &Camera3D) -> Option<usize> {
+        let mouse_pos = rl.get_mouse_position();
+        let ray = rl.get_screen_to_world_ray(mouse_pos, camera);
+
+        let mut closest: Option<usize> = None;
+        let mut min_distance = f32::MAX;
+
+        for (i, planet) in self.planets.iter().enumerate() {
+            let planet_pos = utils::point_on_3d_circle(planet.orbit_normal, planet.orbit_radius as f32, planet.orbit_completion as f32 * 2.0 * PI as f32);
+            if crate::map::ray_sphere_intersect(ray.position, ray.direction, planet_pos.scale_by(50.0), 2.0) {
+                let dist = (ray.position - planet_pos).length();
+                if dist < min_distance {
+                    min_distance = dist;
+                    closest = Some(i);
+                }
+            }
+        }
+        closest 
     }
 }
 
@@ -157,7 +176,7 @@ pub(crate) fn generate_planets(num_planets: usize) -> Vec<Planet> {
 
             let mut moon_orbit;
             loop {
-                moon_orbit = rng.gen_range(0.002..0.05); // in AU
+                moon_orbit = rng.gen_range(0.01..0.05); // in AU
                 if !used_moon_orbits.iter().any(|&o| (o - moon_orbit).abs() < 0.001) {
                     used_moon_orbits.push(moon_orbit);
                     break;
