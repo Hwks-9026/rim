@@ -88,7 +88,7 @@ fn gameloop_star_system_view(rl: &mut RaylibHandle, thread: &RaylibThread, game_
         if rl.is_key_pressed(KeyboardKey::KEY_ESCAPE) { 
             match selected_planet {
                 None => {break;}
-                Some(_) => {selected_planet = None}
+                Some(_) => {selected_planet = None; camera.fovy = 120.0;}
             }
         }
         let mut orbit_direction = 0.0;
@@ -128,7 +128,7 @@ fn gameloop_star_system_view(rl: &mut RaylibHandle, thread: &RaylibThread, game_
                 let mut i: f64 = 0.0;
                 while i < PI * 2.0 {
                     points.push((point_on_3d_circle(planet.orbit_normal, planet.orbit_radius as f32, i as f32), 75));
-                    i += 0.1;
+                    i += 0.05;
                 }
                 let planet_pos = point_on_3d_circle(planet.orbit_normal, planet.orbit_radius as f32, planet.orbit_completion as f32 * 2.0 * PI as f32);
                 orbits.push(points);
@@ -372,7 +372,7 @@ fn draw_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, camera: &Camera3D
                             (0.5, Color::new(60, 60, 80, 255))
                         }
                         else {
-                            (0.7, Color::new(130, 110, 150, 255))
+                            (1.0, Color::new(130, 110, 150, 255))
                         }
                     
                     }
@@ -402,7 +402,7 @@ fn draw_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, camera: &Camera3D
                 }
             }
             d3.draw_sphere(system.position, size, color.alpha(camera.fovy / 50.0));
-            d3.draw_sphere(system.position, size + 0.1, color.alpha(0.5));
+            d3.draw_sphere(system.position, size * 1.2, color.alpha(0.5));
             // Draw connections
             for &conn_idx in &system.connections {
                 if (conn_idx > i || highlight_all_connections) && !skipped_systems.contains(&conn_idx) {
