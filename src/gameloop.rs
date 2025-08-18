@@ -4,7 +4,7 @@ use raylib::prelude::*;
 
 use crate::{
     map::{self, Galaxy}, 
-    system::{self, MoonType, PlanetClass, StarSystemData}, 
+    system::{MoonType, PlanetClass, StarSystemData}, 
     utils::{self, point_on_3d_circle}
 };
 
@@ -65,7 +65,7 @@ fn gameloop_star_system_view(rl: &mut RaylibHandle, thread: &RaylibThread, game_
     let pitch_speed = 0.2;
 
     let mut selected_planet: Option<usize> = None;
-    let mut highlighted_planet: Option<usize> = None;
+    let mut highlighted_planet: Option<usize>;
 
     while !rl.window_should_close() {
         

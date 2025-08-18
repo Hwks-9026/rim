@@ -5,7 +5,6 @@ use crate::system::*;
 use rand::Rng;
 use raylib::prelude::*;
 use std::f64::consts::PI;
-use std::fmt::format;
 
 use serde::{Serialize, Deserialize};
 
