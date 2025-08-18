@@ -89,17 +89,20 @@ fn gameloop_star_system_view(rl: &mut RaylibHandle, thread: &RaylibThread, game_
                 let mut points = Vec::new();
                 let mut i: f64 = 0.0;
                 while i < PI * 2.0 {
-                    //let d = (((i / 2.0 / PI) - planet.orbit_completion + 0.5) % 1.0) - 0.5;
-                    //let g = (-60.0 * d * d).exp();
-                    //let mut alpha = (255.0 * g) as u8;
-                    //if alpha < 10 {alpha = 10}
-                    //if alpha > 5 {
-                    //    points.push((point_on_3d_circle(planet.orbit_normal, planet.orbit_radius as f32, i as f32), alpha));
-                    //}
-                    points.push((point_on_3d_circle(planet.orbit_normal, planet.orbit_radius as f32, i as f32), 55));
+                    points.push((point_on_3d_circle(planet.orbit_normal, planet.orbit_radius as f32, i as f32), 75));
                     i += 0.1;
                 }
+                let planet_pos = point_on_3d_circle(planet.orbit_normal, planet.orbit_radius as f32, planet.orbit_completion as f32 * 2.0 * PI as f32);
                 orbits.push(points);
+                for moon in &planet.moons {
+                    let mut points = Vec::new();
+                    let mut i: f64 = 0.0;
+                    while i < PI * 2.0 {
+                        points.push((planet_pos + point_on_3d_circle(moon.orbit_normal, moon.orbital_radius as f32, i as f32), 35));
+                        i += 0.1;
+                    }
+                    orbits.push(points);
+                }
             }
             orbits
         };
@@ -135,8 +138,8 @@ fn draw_star_system_view(
         }
         d3.draw_sphere(Vector3::zero(), sys_data.star_mass.log10() as f32 / 20.0, Color::YELLOW);
 
-        let orbit_line_color = Color::new(255, 255, 255, 55);
         for orbit in orbits {
+            let orbit_line_color = Color::new(255, 255, 255, orbit[0].1);
             d3.draw_line_3D(orbit[0].0.scale_by(50.0), orbit.last().unwrap().0.scale_by(50.0), orbit_line_color);
             for pair in orbit.windows(2) {
                 d3.draw_line_3D(pair[0].0.scale_by(50.0), pair[1].0.scale_by(50.0), orbit_line_color);
@@ -155,9 +158,12 @@ fn draw_star_system_view(
             //d3.draw_circle_3D(Vector3::zero(), display_radius, planet.orbit_normal, 80.0, );
 
             // Parametric circle position in tilted plane
-            
+            let mut moon_positions: Vec<Vector3> = Vec::new(); 
             let planet_pos = utils::point_on_3d_circle(planet.orbit_normal, display_radius, angle);
-
+            for moon in &planet.moons {
+                let relative_moon_pos = utils::point_on_3d_circle(moon.orbit_normal, moon.orbital_radius as f32 * 50.0, moon.orbit_completion as f32 * 2.0 * PI as f32);
+                moon_positions.push(planet_pos + relative_moon_pos); 
+            } 
             // Planet color
             let planet_color = match planet.class {
                 PlanetClass::Volcanic => Color::ORANGE,
@@ -169,6 +175,10 @@ fn draw_star_system_view(
                 PlanetClass::IceGiant => Color::SKYBLUE,
             };
             d3.draw_sphere(planet_pos, 0.5, planet_color); 
+            d3.draw_sphere(planet_pos, 0.6, planet_color.alpha(0.7)); 
+            for pos in moon_positions {
+                d3.draw_sphere(pos, 0.1,  Color::PINK); 
+            }
         }
 
     }
@@ -289,7 +299,7 @@ fn draw_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, camera: &Camera3D
                             (0.5, Color::new(60, 60, 80, 255))
                         }
                         else {
-                            (0.6, Color::new(110, 90, 130, 255))
+                            (0.6, Color::new(130, 110, 150, 255))
                         }
                     
                     }

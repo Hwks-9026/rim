@@ -51,7 +51,8 @@ pub(crate) struct Moon {
     pub mass: f64,
     pub orbital_radius: f64,
     #[serde(with = "vector3_serde")]
-    pub orbit_normal: Vector3
+    pub orbit_normal: Vector3,
+    pub orbit_completion: f64
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -167,6 +168,7 @@ pub(crate) fn generate_planets(num_planets: usize) -> Vec<Planet> {
                 moon_type: moon_type.to_owned().clone(),
                 mass: moon_mass,
                 orbital_radius: moon_orbit,
+                orbit_completion: rng.gen_range(0..10000) as f64 / 10000.0,
                 orbit_normal: random_orbit_normal(&mut rng, 20.0, Vector3::left()),
             });
         }

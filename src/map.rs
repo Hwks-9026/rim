@@ -54,6 +54,13 @@ impl StarSystem {
                     if planet.orbit_completion > 1.0 {
                         planet.orbit_completion = 0.0;
                     }
+                    for moon in &mut planet.moons {
+
+                        moon.orbit_completion += 0.0002 / moon.orbital_radius;
+                        if moon.orbit_completion > 1.0 {
+                            moon.orbit_completion = 0.0;
+                        }
+                    }
                 } 
             }
 
