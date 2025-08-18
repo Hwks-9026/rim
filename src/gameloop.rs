@@ -4,7 +4,7 @@ use raylib::prelude::*;
 
 use crate::{
     map::{self, Galaxy}, 
-    system::{PlanetClass, StarSystemData}, 
+    system::{MoonType, PlanetClass, StarSystemData}, 
     utils::{self, point_on_3d_circle}
 };
 
@@ -158,11 +158,16 @@ fn draw_star_system_view(
             //d3.draw_circle_3D(Vector3::zero(), display_radius, planet.orbit_normal, 80.0, );
 
             // Parametric circle position in tilted plane
-            let mut moon_positions: Vec<Vector3> = Vec::new(); 
+            let mut moon_positions: Vec<(Vector3, Color)> = Vec::new(); 
             let planet_pos = utils::point_on_3d_circle(planet.orbit_normal, display_radius, angle);
             for moon in &planet.moons {
                 let relative_moon_pos = utils::point_on_3d_circle(moon.orbit_normal, moon.orbital_radius as f32 * 50.0, moon.orbit_completion as f32 * 2.0 * PI as f32);
-                moon_positions.push(planet_pos + relative_moon_pos); 
+                let moon_color: Color = match &moon.moon_type {
+                    MoonType::Asteroid => {Color::GRAY},
+                    MoonType::RoundDusty => {Color::LIGHTSLATEGRAY},
+                    MoonType::SubsurfaceOcean => {Color::SLATEBLUE}
+                };
+                moon_positions.push((planet_pos + relative_moon_pos, moon_color)); 
             } 
             // Planet color
             let planet_color = match planet.class {
@@ -176,8 +181,8 @@ fn draw_star_system_view(
             };
             d3.draw_sphere(planet_pos, 0.5, planet_color); 
             d3.draw_sphere(planet_pos, 0.6, planet_color.alpha(0.7)); 
-            for pos in moon_positions {
-                d3.draw_sphere(pos, 0.1,  Color::PINK); 
+            for (pos, color) in moon_positions {
+                d3.draw_sphere(pos, 0.1,  color); 
             }
         }
 
