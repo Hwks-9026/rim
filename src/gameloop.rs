@@ -137,6 +137,7 @@ fn draw_star_system_view(
             d3.draw_point3D(star, Color::WHITE);
         }
         d3.draw_sphere(Vector3::zero(), sys_data.star_mass.log10() as f32 / 20.0, Color::YELLOW);
+        d3.draw_sphere(Vector3::zero(), sys_data.star_mass.log10() as f32 / 20.0 + 0.5, Color::YELLOW.alpha(0.9));
 
         for orbit in orbits {
             let orbit_line_color = Color::new(255, 255, 255, orbit[0].1);
@@ -179,8 +180,10 @@ fn draw_star_system_view(
                 PlanetClass::GasGiant => Color::PURPLE,
                 PlanetClass::IceGiant => Color::SKYBLUE,
             };
-            d3.draw_sphere(planet_pos, 0.5, planet_color); 
-            d3.draw_sphere(planet_pos, 0.6, planet_color.alpha(0.7)); 
+            let planet_radius = planet.mass.powf(1.0 / 8.444) as f32 / 2.0;
+
+            d3.draw_sphere(planet_pos, planet_radius, planet_color); 
+            d3.draw_sphere(planet_pos, planet_radius * 1.2, planet_color.alpha(0.7)); 
             for (pos, color) in moon_positions {
                 d3.draw_sphere(pos, 0.1,  color); 
             }
@@ -351,28 +354,30 @@ fn draw_map_view(rl: &mut RaylibHandle, thread: &RaylibThread, camera: &Camera3D
     }
 
     if !hud_text {return}
-    /*
     match game_data.hovered {
         None => {
             let string = match game_data.focused {
                 Some(focus) => {
+                    d.draw_rectangle(0, 0, d.get_screen_width(), d.get_screen_height(), Color::BLACK.alpha(0.2));
                     game_data.galaxy.systems[focus].get_hover_string()
                 },
-                None => {"Not Hovering Over A Star System".to_string()}
+                None => {"Not Hovering Over A Star System.".to_string()}
             };
-            d.draw_text(&string, 10, 50, 20, Color::new(200, 200, 200, (camera.fovy * 5.0) as u8))
+            d.draw_text(&string.lines().take(MAX_LINES_MAP_HUD).collect::<Vec<_>>().join("\n")
+                , 15, 10, 30, Color::new(200, 200, 200, (camera.fovy * 5.0) as u8));
+            d.draw_text(&string, d.get_screen_width() - 500, 30 - d.get_screen_height(), 30, Color::new(200, 200, 200, (camera.fovy * 5.0) as u8))
         },
         Some(i) => {
-            d.draw_text(&game_data.galaxy.systems[i].get_hover_string(), 10, 50, 20, Color::new(200, 200, 200, (camera.fovy * 5.0) as u8))
+            d.draw_rectangle(0, 0, d.get_screen_width(), d.get_screen_height(), Color::BLACK.alpha(0.2));
+            d.draw_text(&game_data.galaxy.systems[i].get_hover_string().lines().take(MAX_LINES_MAP_HUD).collect::<Vec<_>>().join("\n")
+                , 15, 10, 30, Color::new(200, 200, 200, (camera.fovy * 5.0) as u8));
+            d.draw_text(&game_data.galaxy.systems[i].get_hover_string(), d.get_screen_width() - 500, 30
+                - d.get_screen_height(), 30, Color::new(200, 200, 200, (camera.fovy * 5.0) as u8))
         }
     }
-    */
-    if camera.fovy < 60.0 {
-        d.draw_text("Press Return To View The Selected Star System.\nPress Escape To Go Back to Map View", 10, 10, 20, Color::new(100, 100, 200, (camera.fovy * 5.0) as u8));
-    }
-
 }
 
+const MAX_LINES_MAP_HUD: usize = 33;
 
 
 struct GameData {

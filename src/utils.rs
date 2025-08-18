@@ -90,3 +90,11 @@ pub mod vector3_serde {
         Ok(Vector3 { x, y, z })
     }
 }
+
+pub fn num_to_letter(n: u8) -> Option<char> {
+    if n < 26 {
+        Some((b'a' + n) as char)
+    } else {
+        None // return None if outside 'a'..'z'
+    }
+}

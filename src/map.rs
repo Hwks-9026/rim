@@ -1,9 +1,11 @@
 #![allow(dead_code)]
+use crate::utils;
 use crate::utils::*;
 use crate::system::*;
 use rand::Rng;
 use raylib::prelude::*;
 use std::f64::consts::PI;
+use std::fmt::format;
 
 use serde::{Serialize, Deserialize};
 
@@ -36,10 +38,20 @@ impl StarSystem {
     pub fn get_hover_string(&self) -> String {
         match &self.system_data {
             None => {
-                format!("No Data Available For System {:X}. Select System to Scan.", self.name)
+                format!("No Data Available For System {:X}.\nSelect System to Scan.", self.name)
             }
             Some(data) => {
-                format!("System {:X}:\n{:#?}", self.name, data) 
+                let mut hover_string: String = format!("System {:X}:\n", self.name);
+                hover_string += format!("Number of Planets: {}\n", data.planets.len()).as_str();
+                for (i, planet) in data.planets.iter().enumerate() {
+                    hover_string += "---\n";
+                    hover_string += format!("Planet {:X}-{}\n", self.name, 
+                        utils::num_to_letter(i as u8).unwrap().to_ascii_uppercase()).as_str();
+                    hover_string += format!("   {:?} Planet.\n", planet.class).as_str();
+                    hover_string += format!("   Orbital radius: {:.3} std.\n", planet.orbit_radius).as_str();
+                    hover_string += format!("   {} Moons.\n", planet.moons.len()).as_str();
+                }
+                hover_string.to_string()
             }
 
         }
